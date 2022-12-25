@@ -70,7 +70,7 @@ class ProjectionMatrix:
         xyz1[1] = point3D[1]
         xyz1[2] = point3D[2]
         projection = self.matrix @ xyz1
-        print (f"Project(): projection = {projection}")
+        #print (f"Project(): projection = {projection}")
         if abs(projection[2]) < zero_threshold:
             raise ZeroDivisionError(f"abs(projection[2]) ({abs(projection[2])}) < zero_threshold ({zero_threshold})")
         xy = [projection[0]/projection[2], projection[1]/projection[2]]
