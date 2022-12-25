@@ -105,11 +105,22 @@ def main():
         camera1_imageFilepath_to_undistorted_intersectionsList, camera1_filepath_to_z,
         calibration_pattern_xy_df
     )
+    camera2_xy_XYZ_tuples = MatchPixelsWith3D(
+        camera2_imageFilepath_to_undistorted_intersectionsList, camera2_filepath_to_z,
+        calibration_pattern_xy_df
+    )
     #logging.info(f"camera1_xy_XYZ_tuples = {camera1_xy_XYZ_tuples}")
 
     # Compute the projection matrix
     projection_mtx1 = ProjectionMatrix(camera1_xy_XYZ_tuples)
     logging.info(f"projection_mtx1.matrix = \n{projection_mtx1.matrix}")
+    projection_mtx2 = ProjectionMatrix(camera2_xy_XYZ_tuples)
+    logging.info(f"projection_mtx2.matrix = \n{projection_mtx2.matrix}")
+    # Save the projection matrices
+    with open(os.path.join(output_directory, "camera1.projmtx"), 'wb') as projection_mtx_file:
+        pickle.dump(projection_mtx1, projection_mtx_file, pickle.HIGHEST_PROTOCOL)
+    with open(os.path.join(output_directory, "camera2.projmtx"), 'wb') as projection_mtx_file:
+        pickle.dump(projection_mtx2, projection_mtx_file, pickle.HIGHEST_PROTOCOL)
 
     # Debug images
     for image_filepath, intersections_list in camera1_imageFilepath_to_undistorted_intersectionsList.items():
@@ -138,6 +149,13 @@ def main():
             cv2.circle(annotated_img, (round(p[0]), round(p[1])), 3, (255, 0, 0), thickness=2)
             cv2.putText(annotated_img, str(point_ndx), (round(p[0]), round(p[1])), cv2.FONT_HERSHEY_SIMPLEX,
                         0.7, (0, 255, 0), thickness=1)
+
+        # Projections
+        Z = camera2_filepath_to_z[image_filepath]
+        for point_ndx in range(len(calibration_pattern_xy_df)):
+            XYZ = (calibration_pattern_xy_df.iloc[point_ndx].x, calibration_pattern_xy_df.iloc[point_ndx].y, Z)
+            projected_p = projection_mtx2.Project(XYZ, must_round=True)
+            cv2.circle(annotated_img, projected_p, 6, (0, 255, 255), thickness=2)
         annotated_img_filepath = os.path.join(output_directory, "calibrateSystem_main_" + os.path.basename(image_filepath) + "UndistortedIntersections.png")
         cv2.imwrite(annotated_img_filepath, annotated_img)
 
@@ -255,7 +273,7 @@ def MatchPixelsWith3D(imageFilepath_to_pixelPointsList,
                       calibration_pattern_xy_df):
     xy_XYZ_tuples = []
     for image_filepath, xy_list in imageFilepath_to_pixelPointsList.items():
-        logging.info(f"image_filepath: {image_filepath}")
+        #logging.info(f"image_filepath: {image_filepath}")
         if not image_filepath in imageFilepath_to_z:
             raise ValueError(f"MatchPixelsWith3D(): image filepath '{image_filepath}' was not found in imageFilepath_to_z:\n{imageFilepath_to_z}")
         Z = imageFilepath_to_z[image_filepath]
