@@ -14,7 +14,7 @@ import pickle
 import pandas as pd
 from stereo_vision.projection import ProjectionMatrix
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)-15s %(levelname)s \t%(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s \t%(message)s')
 
 camera1_filepath_to_z = {
     "calibration_images/camera_1_60cm.png": -60,
@@ -48,7 +48,7 @@ def main():
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
 
-    """checkerboard_intersections = checkerboard.CheckerboardIntersections(
+    checkerboard_intersections = checkerboard.CheckerboardIntersections(
         adaptive_threshold_block_side=19,
         adaptive_threshold_bias=-5,
         correlation_threshold=0.6,
@@ -63,6 +63,7 @@ def main():
                                                                               checkerboard_intersections)
     with open(os.path.join(output_directory, "camera2_intersections.pkl"), 'wb') as intersections_file:
         pickle.dump(camera2_imageFilepath_to_intersectionsList, intersections_file, pickle.HIGHEST_PROTOCOL)
+
     """
     camera1_imageFilepath_to_intersectionsList = {}
     with open(os.path.join(output_directory, "camera1_intersections.pkl"), 'rb') as obj_file:
@@ -70,6 +71,7 @@ def main():
     camera2_imageFilepath_to_intersectionsList = {}
     with open(os.path.join(output_directory, "camera2_intersections.pkl"), 'rb') as obj_file:
         camera2_imageFilepath_to_intersectionsList = pickle.load(obj_file)
+    """
 
     # Undistort the points
     camera1_radial_distortion = None
@@ -159,73 +161,43 @@ def main():
         annotated_img_filepath = os.path.join(output_directory, "calibrateSystem_main_" + os.path.basename(image_filepath) + "UndistortedIntersections.png")
         cv2.imwrite(annotated_img_filepath, annotated_img)
 
-
-
 def InteractivelyFilterBadPoints(cameraFilepath_to_z, checkerboard_intersections):
     imageFilepath_to_intersectionsList = {}
     for image_filepath, distance in cameraFilepath_to_z.items():
         user_is_satisfied = False
+        image = cv2.imread(image_filepath)
+        intersections_list = checkerboard_intersections.FindIntersections(image)
         while not user_is_satisfied:
-            image = cv2.imread(image_filepath)
             annotated_img = copy.deepcopy(image)
-            intersections_list = checkerboard_intersections.FindIntersections(image)
-            logging.info(f"len(intersections_list) = {len(intersections_list)}")
+
             for pt_ndx in range(len(intersections_list)):
                 p = intersections_list[pt_ndx]
-                color = ((pt_ndx * 17)%256, (pt_ndx * 117)%256, (pt_ndx*1117)%256)
+                color = ((pt_ndx * 17) % 256, (pt_ndx * 117) % 256, (pt_ndx * 1117) % 256)
                 cv2.circle(annotated_img, (round(p[0]), round(p[1])), 3, color, thickness=2)
                 cv2.circle(annotated_img, (round(p[0]), round(p[1])), 5, (255, 255, 255), thickness=1)
-                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), thickness=2)
-                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, thickness=1)
+                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, (0, 0, 0), thickness=2)
+                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX,
+                            0.7, color, thickness=1)
 
-
-            input_is_accepted = False
-            while not input_is_accepted:
-                annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
-                print("Enter outlier indices. Ex: [0, 21, 7]. For an empty list, press Enter.\nThen, close the image window.")
-                plt.imshow(annotated_img_rgb)
-                plt.show()
-                outlier_indices_str = input()
-                outlier_indices = []
-                if outlier_indices_str != '':
-                    try:
-                        print(f"outlier_indices_str = {outlier_indices_str}")
-                        outlier_indices = ast.literal_eval(outlier_indices_str)
-                        if type(outlier_indices) is list:
-                            input_is_accepted = True
-                        else:
-                            print("Please enter indices again.\n")
-                    except Exception as e:
-                        print(f"Caught exception '{e}'. Please enter indices again.\n")
-                else:
-                    input_is_accepted = True
-                plt.close()
-            # Filter bad points
-            filtered_points = []
-            for pt_ndx in range(len(intersections_list)):
-                if pt_ndx not in outlier_indices:
-                    filtered_points.append(intersections_list[pt_ndx])
-
-            annotated_img = copy.deepcopy(image)
-            for pt_ndx in range(len(filtered_points)):
-                p = filtered_points[pt_ndx]
-                color = ((pt_ndx * 17)%256, (pt_ndx * 117)%256, (pt_ndx*1117)%256)
-                cv2.circle(annotated_img, (round(p[0]), round(p[1])), 3, color, thickness=2)
-                cv2.circle(annotated_img, (round(p[0]), round(p[1])), 5, (255, 255, 255), thickness=1)
-                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), thickness=2)
-                cv2.putText(annotated_img, str(pt_ndx), (round(p[0] - 10), round(p[1] - 10)), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, thickness=1)
-            annotated_img_rgb = cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB)
-            print("If there is an error (ignore duplicates), type 'n [Enter]' and close the image.\nOtherwise, just close the image and type [Enter].")
-            plt.imshow(annotated_img_rgb)
-            plt.show()
-            user_response = input()
-            if user_response.upper() != 'N':
+            removed_rect = cv2.selectROI("Intersections: Select points to remove, and press spacebar", annotated_img,
+                                         showCrosshair=False, fromCenter=False)
+            logging.debug(f"removed_rect = {removed_rect}")
+            if removed_rect == (0, 0, 0, 0):
                 user_is_satisfied = True
-            plt.close()
-        logging.info(f"Before RemoveDuplicates(): len(filtered_points) = {len(filtered_points)}")
-        filtered_points = RemoveDuplicates(filtered_points)
-        logging.info(f"After RemoveDuplicates(): len(filtered_points) = {len(filtered_points)}")
-        imageFilepath_to_intersectionsList[image_filepath] = filtered_points
+            else:  # Remove points
+                pruned_intersections_list = []
+                for p in intersections_list:
+                    if p[0] >= removed_rect[0] and p[0] <= removed_rect[0] + removed_rect[2] and \
+                        p[1] >= removed_rect[1] and p[1] <= removed_rect[1] + removed_rect[3]:
+                        pass  # p is in the removed ROI: skip it
+                    else:
+                        pruned_intersections_list.append(p)
+                intersections_list = pruned_intersections_list
+        logging.info(f"Before RemoveDuplicates(): len(intersections_list) = {len(intersections_list)}")
+        intersections_list = RemoveDuplicates(intersections_list)
+        logging.info(f"After RemoveDuplicates(): len(intersections_list) = {len(intersections_list)}")
+        imageFilepath_to_intersectionsList[image_filepath] = intersections_list
     return imageFilepath_to_intersectionsList
 
 def RemoveDuplicates(points_list, threshold_in_pixels=5):
@@ -273,7 +245,6 @@ def MatchPixelsWith3D(imageFilepath_to_pixelPointsList,
                       calibration_pattern_xy_df):
     xy_XYZ_tuples = []
     for image_filepath, xy_list in imageFilepath_to_pixelPointsList.items():
-        #logging.info(f"image_filepath: {image_filepath}")
         if not image_filepath in imageFilepath_to_z:
             raise ValueError(f"MatchPixelsWith3D(): image filepath '{image_filepath}' was not found in imageFilepath_to_z:\n{imageFilepath_to_z}")
         Z = imageFilepath_to_z[image_filepath]
