@@ -39,7 +39,7 @@ def main(
             if images[camera_name_ndx] is not None:
                 cv2.imshow(camera_names[camera_name_ndx], images[camera_name_ndx])
 
-                key = cv2.waitKey(10) & 0xFF
+            key = cv2.waitKey(1) & 0xFF
         if key == ord('q'):
             break
         elif key == ord('s'):  # Save the image
