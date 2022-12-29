@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import os
 from stereo_vision.grab import Grabber
 import time
+import numpy as np
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)-15s %(levelname)s \t%(message)s')
 
@@ -15,7 +16,8 @@ def main(
     recordTime,
     warmupTime,
     grabDelays,
-    exposure
+    exposure,
+    display
 ):
     logging.info(f"record.main()")
 
@@ -53,6 +55,13 @@ def main(
                 img_filepath = os.path.join(outputDirectory, camera_names[image_ndx] + "_" + \
                                             str(current_time).replace(' ', '_').replace(':', '') + '.png')
                 cv2.imwrite(img_filepath, images[image_ndx])
+        if display:
+            width = images[0].shape[1]
+            composite_img = np.zeros((images[0].shape[0], len(images) * images[0].shape[1], 3), dtype=np.uint8)
+            for image_ndx in range(len(images)):
+                composite_img[:, image_ndx * width: (image_ndx + 1) * width, :] = images[image_ndx]
+            cv2.imshow("Stereo images", composite_img)
+            cv2.waitKey(1)
         current_time = datetime.now()
 
 
@@ -65,6 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('--warmupTime', help="Warmup time, in seconds, where no images are recorded. Default: 5.0", type=float, default=5.0)
     parser.add_argument('--grabDelays', help="The delays, in seconds, to compensate for cameras grab speed differences. The first camera grabs without delay, and the other ones are delayed. Default: '[0]'", default='[0]')
     parser.add_argument('--exposure', help="The value for the parameter CAP_PROP_EXPOSURE. The meaning depends on the camera model. Default: 400", type=float, default=400)
+    parser.add_argument('--display', help="Display the images", action='store_true')
     args = parser.parse_args()
     cameraIDList = ast.literal_eval(args.cameraIDList)
     grabDelays = ast.literal_eval(args.grabDelays)
@@ -76,5 +86,6 @@ if __name__ == '__main__':
         args.recordTime,
         args.warmupTime,
         grabDelays,
-        args.exposure
+        args.exposure,
+        args.display
     )
