@@ -78,3 +78,38 @@ class ProjectionMatrix:
             xy[0] = round(xy[0])
             xy[1] = round(xy[1])
         return xy
+
+class StereoVisionSystem:
+    def __init__(self, projection_matrices_list):
+        if len(projection_matrices_list) < 2:
+            raise ValueError(f"StereoVisionSystem.__init__(): len(projection_matrices_list) ({len(projection_matrices_list)}) < 2")
+        self.projection_matrices_list = projection_matrices_list
+
+    def SolveXYZ(self, coordinates_list):
+        if len(coordinates_list) != len(self.projection_matrices_list):
+            raise ValueError(f"StereoVisionSystem.SolveXYZ(): len(coordinates_list) ({len(coordinates_list)}) != len(self.projection_matrices_list) ({len(self.projection_matrices_list)})")
+        """
+        | ui p20 - p00    ui p21 - p01    ui p22 - p02 | | X |   | p03 - ui p23 |
+        | vi p20 - p10    vi p21 - p11    vi p22 - p12 | | Y | = | p13 - vi p23 |
+        | ...                                          | | Z | = | ...          |   
+        """
+        A = np.zeros((2 * len(self.projection_matrices_list), 3))
+        b = np.zeros(2 * len(self.projection_matrices_list))
+        for proj_mtx_ndx in range(len(self.projection_matrices_list)):
+            P = self.projection_matrices_list[proj_mtx_ndx]
+            uv = coordinates_list[proj_mtx_ndx]
+            if len(uv) != 2:
+                raise ValueError(f"StereoVisionSystem.SolveXYZ(): The length of a coordinates vector ({uv}) is not 2")
+            u = uv[0]
+            v = uv[1]
+            A[2 * proj_mtx_ndx, 0] = u * P[2, 0] - P[0, 0]
+            A[2 * proj_mtx_ndx, 1] = u * P[2, 1] - P[0, 1]
+            A[2 * proj_mtx_ndx, 2] = u * P[2, 2] - P[0, 2]
+            A[2 * proj_mtx_ndx + 1, 0] = v * P[2, 0] - P[1, 0]
+            A[2 * proj_mtx_ndx + 1, 1] = v * P[2, 1] - P[1, 1]
+            A[2 * proj_mtx_ndx + 1, 2] = v * P[2, 2] - P[1, 2]
+            b[2 * proj_mtx_ndx] = P[0, 3] - u * P[2, 3]
+            b[2 * proj_mtx_ndx + 1] = P[1, 3] - v * P[2, 3]
+        # Least-square solve
+        XYZ, residuals, rank, singular_values = np.linalg.lstsq(A, b, rcond=None)
+        return XYZ
