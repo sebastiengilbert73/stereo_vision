@@ -4,10 +4,10 @@ import os
 import utilities.blob_analysis as blob_analysis
 
 class Detector():
-    def __init__(self, blue_delta=0,
-                 blue_mask_dilation_kernel_size=1,
-                 red_delta=0,
-                 red_mask_dilation_kernel_size=1,
+    def __init__(self, blue_delta=15,
+                 blue_mask_dilation_kernel_size=45,
+                 red_delta=50,
+                 red_mask_dilation_kernel_size=13,
                  debug_directory=None):
         self.blue_delta = blue_delta
         self.blue_mask_dilation_kernel_size = blue_mask_dilation_kernel_size
