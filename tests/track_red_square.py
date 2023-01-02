@@ -36,8 +36,8 @@ def main(
 
     with open(os.path.join(outputDirectory, "red_square_coordinates.csv"), 'w') as coords_file:
         header = "timestamp"
-        for camera_ID in cameraIDList:
-            header += f",x_{camera_ID},y_{camera_ID}"
+        for camera_ID_ndx in range(1, len(cameraIDList) + 1):
+            header += f",x_{str(camera_ID_ndx)},y_{str(camera_ID_ndx)}"
         header += "\n"
         coords_file.write(header)
         timestamps = list(timestamp_to_imageFilepathsList.keys())
