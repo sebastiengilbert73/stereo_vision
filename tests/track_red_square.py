@@ -108,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--cameraIDList', help="The list of camera ID. Default: '[1, 2]'", default='[1, 2]')
     parser.add_argument('--redSquareDetectorBlueDelta', help="For the red square detector, the blue delta. Default: 15", type=int, default=15)
     parser.add_argument('--redSquareDetectorBlueDilationSize', help="For the red square detector, the blue dilation size. Default: 45", type=int, default=45)
-    parser.add_argument('--redSquareDetectorRedDelta', help="For the red square detector, the red delta. Default: 50", type=int, default=50)
+    parser.add_argument('--redSquareDetectorRedDelta', help="For the red square detector, the red delta. Default: 70", type=int, default=70)
     parser.add_argument('--redSquareDetectorRedDilationSize', help="For the red square detector, the red dilation size. Default: 13", type=int, default=13)
     args = parser.parse_args()
     cameraIDList = ast.literal_eval(args.cameraIDList)
