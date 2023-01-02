@@ -46,11 +46,17 @@ class Detector():
         highest_number_of_pixels = 0
         for seed_point, bounding_box in seedPoint_boundingBox_list:
             points_list = blob_analysis.PointsOfBlob(red_square_mask, seed_point, bounding_box)
-            number_of_pixels = len(points_list)
-            if number_of_pixels > highest_number_of_pixels:
-                highest_number_of_pixels = number_of_pixels
-                largest_points_list = points_list
-        center_of_mass = blob_analysis.CenterOfMass(largest_points_list)
+            if points_list is None:
+                number_of_pixels = 0
+            else:
+                number_of_pixels = len(points_list)
+                if number_of_pixels > highest_number_of_pixels:
+                    highest_number_of_pixels = number_of_pixels
+                    largest_points_list = points_list
+        if largest_points_list is None:
+            center_of_mass = (-1, -1)
+        else:
+            center_of_mass = blob_analysis.CenterOfMass(largest_points_list)
 
         if self.debug_directory is not None:
             blue_domination_img_filepath = os.path.join(self.debug_directory, "Detector_detect_blueDomination.png")
