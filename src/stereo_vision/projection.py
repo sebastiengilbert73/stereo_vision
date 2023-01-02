@@ -102,14 +102,14 @@ class StereoVisionSystem:
                 raise ValueError(f"StereoVisionSystem.SolveXYZ(): The length of a coordinates vector ({uv}) is not 2")
             u = uv[0]
             v = uv[1]
-            A[2 * proj_mtx_ndx, 0] = u * P[2, 0] - P[0, 0]
-            A[2 * proj_mtx_ndx, 1] = u * P[2, 1] - P[0, 1]
-            A[2 * proj_mtx_ndx, 2] = u * P[2, 2] - P[0, 2]
-            A[2 * proj_mtx_ndx + 1, 0] = v * P[2, 0] - P[1, 0]
-            A[2 * proj_mtx_ndx + 1, 1] = v * P[2, 1] - P[1, 1]
-            A[2 * proj_mtx_ndx + 1, 2] = v * P[2, 2] - P[1, 2]
-            b[2 * proj_mtx_ndx] = P[0, 3] - u * P[2, 3]
-            b[2 * proj_mtx_ndx + 1] = P[1, 3] - v * P[2, 3]
+            A[2 * proj_mtx_ndx, 0] = u * P.matrix[2, 0] - P.matrix[0, 0]
+            A[2 * proj_mtx_ndx, 1] = u * P.matrix[2, 1] - P.matrix[0, 1]
+            A[2 * proj_mtx_ndx, 2] = u * P.matrix[2, 2] - P.matrix[0, 2]
+            A[2 * proj_mtx_ndx + 1, 0] = v * P.matrix[2, 0] - P.matrix[1, 0]
+            A[2 * proj_mtx_ndx + 1, 1] = v * P.matrix[2, 1] - P.matrix[1, 1]
+            A[2 * proj_mtx_ndx + 1, 2] = v * P.matrix[2, 2] - P.matrix[1, 2]
+            b[2 * proj_mtx_ndx] = P.matrix[0, 3] - u * P.matrix[2, 3]
+            b[2 * proj_mtx_ndx + 1] = P.matrix[1, 3] - v * P.matrix[2, 3]
         # Least-square solve
         XYZ, residuals, rank, singular_values = np.linalg.lstsq(A, b, rcond=None)
         return XYZ
