@@ -15,7 +15,9 @@ def main(
     outputDirectory,
     projectionMatrix1Filepath,
     projectionMatrix2Filepath,
-    coordinatesFilepath
+    coordinatesFilepath,
+    radialDistortion1Filepath,
+    radialDistortion2Filepath
 ):
     logging.info("solve_tracked_coords.main()")
 
@@ -37,6 +39,14 @@ def main(
     # Load the coordinates
     coords_df = pd.read_csv(coordinatesFilepath)
 
+    # Load the radial distortion compensation models
+    radial_dDistortion1 = None
+    radial_dDistortion2 = None
+    with open(radialDistortion1Filepath, 'rb') as radial_dist1_file:
+        radial_dDistortion1 = pickle.load(radial_dist1_file)
+    with open(radialDistortion2Filepath, 'rb') as radial_dist2_file:
+        radial_dDistortion2 = pickle.load(radial_dist2_file)
+
     annotated_images_list = []
     for timestamp, image_filepath in timestamp_imageFilepath_list:
         row = coords_df[coords_df['timestamp'] == timestamp]
@@ -44,11 +54,15 @@ def main(
             raise ValueError(f"len(row) ({len(row)}) != 1 for timestamp '{timestamp}'")
         #logging.debug(f"row: {row}")
         coords = [(row.iloc[0]['x_1'], row.iloc[0]['y_1']), (row.iloc[0]['x_2'], row.iloc[0]['y_2'])]
+        # Compensate the radial distortion
+        coords_1 = radial_dDistortion1.UndistortPoint(coords[0])
+        coords_2 = radial_dDistortion2.UndistortPoint(coords[1])
+        coords = [coords_1, coords_2]
         XYZ = stereo_system.SolveXYZ(coords)
         image = cv2.imread(image_filepath)
         annotated_img = copy.deepcopy(image)
         uv = coords[0]
-        cv2.putText(annotated_img, "({:.2f}, {:.2f}, {:.2f})".format(XYZ[0], XYZ[1], XYZ[2]), (round(uv[0]) + 10, round(uv[1]) - 10),
+        cv2.putText(annotated_img, "({:.1f}, {:.1f}, {:.1f})".format(XYZ[0], XYZ[1], XYZ[2]), (round(uv[0]) + 10, round(uv[1]) - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), thickness=2)
         cv2.imwrite(os.path.join(outputDirectory, timestamp + ".png"), annotated_img)
         annotated_images_list.append(cv2.cvtColor(annotated_img, cv2.COLOR_BGR2RGB))  # imageio expects RGB images
@@ -88,6 +102,10 @@ if __name__ == '__main__':
                         default="./output_calibrate_system/camera2.projmtx")
     parser.add_argument('--coordinatesFilepath', help="The filepath for the tracked coordinates. Default: './output_track_red_square/red_square_coordinates.csv'",
                         default="./output_track_red_square/red_square_coordinates.csv")
+    parser.add_argument('--radialDistortion1Filepath', help="The filepath for the radial distortion compensation model for camera 1. Default: './radial_distortion/calibration_left.pkl'",
+                        default='./radial_distortion/calibration_left.pkl')
+    parser.add_argument('--radialDistortion2Filepath', help="The filepath for the radial distortion compensation model for camera 2. Default: './radial_distortion/calibration_right.pkl'",
+                        default='./radial_distortion/calibration_right.pkl')
     args = parser.parse_args()
 
     main(
@@ -95,5 +113,7 @@ if __name__ == '__main__':
         args.outputDirectory,
         args.projectionMatrix1Filepath,
         args.projectionMatrix2Filepath,
-        args.coordinatesFilepath
+        args.coordinatesFilepath,
+        args.radialDistortion1Filepath,
+        args.radialDistortion2Filepath
     )
